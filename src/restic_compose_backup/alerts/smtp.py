@@ -26,7 +26,7 @@ class SMTPAlert(BaseAlert):
             os.environ.get("EMAIL_PORT"),
             os.environ.get("EMAIL_HOST_USER"),
             os.environ.get("EMAIL_HOST_PASSWORD"),
-            os.environ.get("EMAIL_SEND_FROM"),
+            (os.environ.get("EMAIL_SEND_FROM") or os.environ.get("EMAIL_HOST_USER")),
             (os.environ.get("EMAIL_SEND_TO") or "").split(","),
         )
         if instance.properly_configured:
