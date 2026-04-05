@@ -1,7 +1,7 @@
 import logging
 from typing import List, Tuple, Union
 from restic_compose_backup import utils
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, STDOUT
 
 logger = logging.getLogger(__name__)
 
@@ -85,20 +85,33 @@ def docker_exec(
 def run(cmd: List[str]) -> int:
     """Run a command with parameters"""
     logger.debug("cmd: %s", " ".join(cmd))
-    child = Popen(cmd, stdout=PIPE, stderr=PIPE)
-    stdoutdata, stderrdata = child.communicate()
+    
+    # Run command and merge stderr into stdout for streaming
+    child = Popen(cmd, stdout=PIPE, stderr=STDOUT, bufsize=1, universal_newlines=True)
 
-    if stdoutdata.strip():
-        log_std(
-            "stdout",
-            stdoutdata.decode(),
-            logging.DEBUG if child.returncode == 0 else logging.ERROR,
-        )
+    # Read output line by line as it is produced
+    if child.stdout is None:
+        logger.error("Failed to capture output from command: %s", " ".join(cmd))
+        return 1
 
-    if stderrdata.strip():
-        log_std("stderr", stderrdata.decode(), logging.ERROR)
+    stdout_lines = []
+    for line in child.stdout:
+        # Since we don't know the exit code yet, log all output at debug level.
+        # This streams it in real-time.
+        logger.debug(line.rstrip('\n'))
+        stdout_lines.append(line)
 
+    # Wait for the command to finish and get returncode
+    child.wait()
     logger.debug("returncode %s", child.returncode)
+    
+    # If the command failed, log an error indicating so
+    # Only do this if we're not in debug mode (since in debug mode we already logged all output)
+    if child.returncode != 0:
+        logger.error("Command exited with error code %s: %s", child.returncode, " ".join(cmd))
+        if not logger.isEnabledFor(logging.DEBUG):
+            logger.error("Command output: %s", "\n".join(stdout_lines))
+
     return child.returncode
 
 
