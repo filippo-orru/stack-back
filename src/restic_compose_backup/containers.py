@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 import socket
-from typing import List
+from typing import List, Optional
 
 from restic_compose_backup import enums, utils
 from restic_compose_backup.config import config
@@ -36,7 +36,7 @@ class Container:
         self._exclude = self._parse_pattern(self.get_label(enums.LABEL_VOLUMES_EXCLUDE))
 
     @property
-    def instance(self) -> "Container":
+    def instance(self) -> "Container | None":
         """Container: Get a service specific subclass instance"""
         # TODO: Do this smarter in the future (simple registry)
         if self.database_backup_enabled:
@@ -220,7 +220,7 @@ class Container:
 
     def get_label(self, name, default=None):
         """Get a label by name"""
-        return self._labels.get(name, None)
+        return self._labels.get(name, default)
 
     def filter_mounts(self):
         """Get all mounts for this container matching include/exclude filters"""
@@ -316,7 +316,7 @@ class Container:
         """list: create a dump command restic and use to send data through stdin"""
         raise NotImplementedError("Base container class don't implement this")
 
-    def _parse_pattern(self, value: str) -> List[str]:
+    def _parse_pattern(self, value: str) -> List[str] | None:
         """list: Safely parse include/exclude pattern from user"""
         if not value:
             return None
@@ -397,12 +397,12 @@ class Mount:
 
 class RunningContainers:
     def __init__(self):
-        all_containers = utils.list_containers()
-        self.containers = []
-        self.this_container = None
-        self.backup_process_container = None
-        self.stale_backup_process_containers = []
-        self.stop_during_backup_containers = []
+        all_containers: list[dict] = utils.list_containers()
+        self.containers: list[Container] = []
+        self.this_container: Container
+        self.backup_process_container: Optional[Container] = None
+        self.stale_backup_process_containers: list[Container] = []
+        self.stop_during_backup_containers: list[Container] = []
 
         # Find the container we are running in.
         # If we don't have this information we cannot continue
@@ -485,7 +485,7 @@ class RunningContainers:
 
         return mounts
 
-    def get_service(self, name) -> Container:
+    def get_service(self, name) -> Optional[Container]:
         """Container: Get a service by name"""
         for container in self.containers:
             if container.service_name == name:
