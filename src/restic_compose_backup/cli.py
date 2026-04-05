@@ -68,7 +68,7 @@ def main():
             print(" - {} {} {}".format(node.id, addr, state))
 
 
-def status(config, containers):
+def status(config: Config, containers: RunningContainers):
     """Outputs the backup config for the compose setup"""
     logger.info("Status for compose project '%s'", containers.project_name)
     logger.info("Repository: '%s'", config.repository)
@@ -142,7 +142,7 @@ def status(config, containers):
     logger.info("-" * 67)
 
 
-def backup(config, containers: RunningContainers):
+def backup(config: Config, containers: RunningContainers):
     """Request a backup to start"""
     # Make sure we don't spawn multiple backup processes
     if containers.backup_process_running:

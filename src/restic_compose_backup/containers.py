@@ -399,7 +399,7 @@ class RunningContainers:
     def __init__(self):
         all_containers: list[dict] = utils.list_containers()
         self.containers: list[Container] = []
-        self.this_container: Container
+        self.this_container: Optional[Container] = None
         self.backup_process_container: Optional[Container] = None
         self.stale_backup_process_containers: list[Container] = []
         self.stop_during_backup_containers: list[Container] = []
